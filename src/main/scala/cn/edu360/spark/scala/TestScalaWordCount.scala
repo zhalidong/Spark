@@ -11,14 +11,17 @@ object TestScalaWordCount {
 
         val sc: SparkContext = new SparkContext(cof)
         val lines: RDD[String] = sc.textFile(args(0))
-        //切分压平
-        val words: RDD[String] = lines.flatMap(_.split(" "))
-        //将单词和1组合
-        val wordAndOne: RDD[(String, Int)] = words.map((_,1))
-        //按key聚合
-        val reduced: RDD[(String, Int)] = wordAndOne.reduceByKey(_+_)
+        //切分
+        val words = lines.flatMap(s=>{s.split(" ")})
 
+        val wordandone = words.map(s=>(s,1))
 
+        val reduced = wordandone.reduceByKey((a,b)=>{a+b})
+
+        val sorted = reduced.sortBy((a)=>{a._2})
+
+        sorted.saveAsTextFile(args(1))
+        sc.stop()
     }
 
 }

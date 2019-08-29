@@ -9,16 +9,15 @@ import scala.collection.mutable
 
 /**
   *2.求每个学科中最受欢迎老师的top3（至少用2到三种方式实现）
-  *    http://bigdata.edu360.cn/laozhao
+  *    http://bigdata.edu360.cn/laozhao  减少shuffle的次数
   *
   *    减少shuffle
   */
 object GroupFavTeacher4 {
     def main(args: Array[String]): Unit = {
-        val conf = new SparkConf().setAppName("FavTeacher").setMaster("local[4]")
+        val conf = new SparkConf().setAppName("GroupFavTeacher4").setMaster("local[4]")
         val sc = new SparkContext(conf)
 
-       // val subjects = Array("bigdata","javaee","php")
 
         val lines: RDD[String] = sc.textFile(args(0))
         //整理数据
@@ -30,8 +29,7 @@ object GroupFavTeacher4 {
             ((subject, teacher),1)
         })
 
-        //和一组合在一起 不好 调用了两次map方法
-        //val map: Any => RDD[Nothing] = subjectAndteacher.map(_,1)
+
 
         //计算有多少学科
         val subjects: Array[String] = subjectAndteacher.map(_._1._1).distinct().collect()
@@ -39,12 +37,9 @@ object GroupFavTeacher4 {
         val sbparitioner: SubjectParitioner2 = new SubjectParitioner2(subjects)
 
 
-        //聚合 就按照指定的分区器进行分区
+        //聚合 就按照指定的分区器进行分区  减少shuffle
         //该rdd 一个分区内就只有一个学科数据
         val reduced: RDD[((String, String), Int)] = subjectAndteacher.reduceByKey(sbparitioner,_+_)
-
-
-
 
 
         //如何一次拿出一个分区 (可以操作一个分区中的数据了)

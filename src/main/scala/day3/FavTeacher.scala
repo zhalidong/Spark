@@ -19,17 +19,18 @@ import org.apache.spark.{SparkConf, SparkContext}
 object FavTeacher {
 
     def main(args: Array[String]): Unit = {
-        val conf = new SparkConf().setAppName("FavTeacher").setMaster("local[4]")
+        val conf = new SparkConf().setAppName("FavTeacher").setMaster("local[4]")   //4个线程
         val sc = new SparkContext(conf)
 
+        //指定以后从哪里读取数据
         val lines: RDD[String] = sc.textFile(args(0))
-        //整理数据
+        //整理数据 学科 老师 map是一行一行处理
         val teacherAndOne = lines.map(line => {
-            val index = line.lastIndexOf("/")
+            val index = line.lastIndexOf("/")                       //   /出现的坐标
             val teacher = line.substring(index + 1)
             //            val httpHost = line.substring(0,index)
-            //            val subject = new URL(httpHost).getHost.split("[.]")(0)
-            (teacher, 1)
+            //            val subject = new URL(httpHost).getHost.split("[.]")(0)   //[]  是转义的意思
+            (teacher, 1)                        //老师和1组合到一起
         })
 
 
@@ -43,7 +44,6 @@ object FavTeacher {
 
         //打印
         println(result.toBuffer)
-
         sc.stop()
 
     }
