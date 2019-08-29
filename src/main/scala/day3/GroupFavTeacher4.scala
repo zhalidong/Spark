@@ -50,7 +50,6 @@ object GroupFavTeacher4 {
         //收集结果
         /*val r: Array[((String, String), Int)] = sorted.collect()
         println(r.toBuffer)*/
-
         sorted.saveAsTextFile("d://out")
         sc.stop()
     }
