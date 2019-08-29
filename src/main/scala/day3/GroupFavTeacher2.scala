@@ -34,8 +34,8 @@ object GroupFavTeacher2 {
         //聚合 将学科和老师联合当做key
         val reduced: RDD[((String, String), Int)] = subjectAndteacher.reduceByKey(_+_)
 
-
-
+        //cache到内存 (标记为cache的RDD以后被反复使用 才使用cache)
+         val cached: RDD[((String, String), Int)] = reduced.cache()
 
         //scala的集合排序是在内存中进行的 但是内存有可能不够用
          //可以调用RDD的sortby方法 内存+磁盘进行排序 可以把中间结果写磁盘 而且可以在多台机器并行
@@ -46,13 +46,18 @@ object GroupFavTeacher2 {
         for(e<- subjects) {
 
             //该RDD中对应的数据仅有一个学科的数据 （因为过滤了）
-            val filtered: RDD[((String, String), Int)] = reduced.filter(_._1._1 == e)
+            val filtered: RDD[((String, String), Int)] = cached.filter(_._1._1 == e)
 
             //现在调用的是RDD的sortby方法 (take是一个action 会触发任务提交到集群)
             val favTeacher: Array[((String, String), Int)] = filtered.sortBy(_._2, false).take(N)
 
             println(favTeacher.toBuffer)
         }
+        //前面的cache的数据已近计算完了 后面还有很多其他的指标要计算
+        //后面计算的指标也要触发很多次Action 最好将数据缓存到内存
+        //原来的数据占用着内存 把原来的数据释放掉 才能缓存新的数据
+
+
         sc.stop()
     }
 }
