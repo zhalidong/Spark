@@ -20,20 +20,20 @@ object ScalaWordCount {
 //      println(lines.partitions.length)
 
       //切分压平
-      //val words: RDD[String] = lines.flatMap(_.split(" "))
+      val words: RDD[String] = lines.flatMap(_.split(" "))
 
 
       //将单词和1组合
-      //val wordAndOne: RDD[(String, Int)] = words.map((_,1))
+      val wordAndOne: RDD[(String, Int)] = words.map((_,1))
 
       //按key进行聚合
-      //val reduced: RDD[(String, Int)] = wordAndOne.reduceByKey(_+_)
+      val reduced: RDD[(String, Int)] = wordAndOne.reduceByKey(_+_)
 
       //排序
-      //val sorted: RDD[(String, Int)] = reduced.sortBy(_._2,false)
+      val sorted: RDD[(String, Int)] = reduced.sortBy(_._2,false)
 
       //将结果保存到hdfs中
-      //sorted.saveAsTextFile(args(1))
+      sorted.saveAsTextFile(args(1))
 
       //该函数的功能是将对应分区中的数据取出来，并且带上分区编号
       /*val func=(index:Int,it:Iterator[Int])=>{
