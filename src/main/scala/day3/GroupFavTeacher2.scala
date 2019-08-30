@@ -14,6 +14,8 @@ object GroupFavTeacher2 {
         val conf = new SparkConf().setAppName("GroupFavTeacher2").setMaster("local[4]")
         val sc = new SparkContext(conf)
 
+        sc.setCheckpointDir("hdfs://node-10:9000/ck")
+
         val N =args(1).toInt
 
         val subjects = Array("bigdata","javaee","php")
@@ -35,7 +37,9 @@ object GroupFavTeacher2 {
         val reduced: RDD[((String, String), Int)] = subjectAndteacher.reduceByKey(_+_)
 
         //cache到内存 (标记为cache的RDD以后被反复使用 才使用cache)
-         val cached: RDD[((String, String), Int)] = reduced.cache()
+         //val cached: RDD[((String, String), Int)] = reduced.cache()
+
+        reduced.checkpoint()
 
         //scala的集合排序是在内存中进行的 但是内存有可能不够用
          //可以调用RDD的sortby方法 内存+磁盘进行排序 可以把中间结果写磁盘 而且可以在多台机器并行
@@ -46,7 +50,7 @@ object GroupFavTeacher2 {
         for(e<- subjects) {
 
             //该RDD中对应的数据仅有一个学科的数据 （因为过滤了）
-            val filtered: RDD[((String, String), Int)] = cached.filter(_._1._1 == e)
+            val filtered: RDD[((String, String), Int)] = reduced.filter(_._1._1 == e)
 
             //现在调用的是RDD的sortby方法 (take是一个action 会触发任务提交到集群)
             val favTeacher: Array[((String, String), Int)] = filtered.sortBy(_._2, false).take(N)
