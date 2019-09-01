@@ -95,6 +95,7 @@ object IpLoaction2 {
               conn.close()
             })
 */
+        //
         reduced.foreachPartition(it => MyUtils.data2MySQL(it))
 
 
