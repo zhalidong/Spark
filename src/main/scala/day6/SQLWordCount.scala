@@ -22,6 +22,7 @@ object SQLWordCount {
 
         //执行sql（Transformation lazy）
         val result: DataFrame = spark.sql("select value, count(1) as counts from v_wc group by value order by counts desc")
+        //执行Action
         result.show()
 
         spark.stop()
