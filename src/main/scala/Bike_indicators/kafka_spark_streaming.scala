@@ -1,26 +1,30 @@
-package day9
+
+package Bike_indicators
 
 import kafka.common.TopicAndPartition
 import kafka.message.MessageAndMetadata
 import kafka.serializer.StringDecoder
 import kafka.utils.{ZKGroupTopicDirs, ZkUtils}
 import org.I0Itec.zkclient.ZkClient
+import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.SparkConf
-import org.apache.spark.streaming.dstream.{DStream, InputDStream}
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.streaming.dstream.{DStream, InputDStream, ReceiverInputDStream}
 import org.apache.spark.streaming.kafka.{HasOffsetRanges, KafkaUtils, OffsetRange}
-import org.apache.spark.streaming.{Duration, StreamingContext}
+import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
 
 /**
-  * 直连方式
+  * 使用sparkstreaming处理kafka过来的数据  直连方式收集kafka中的数据
   */
-object KafkaDirectWordCount {
+
+object kafka_spark_streaming {
 
     def main(args: Array[String]): Unit = {
 
         //指定组名 消费者组
-        val group = "g002"
+        val group = "zld3"
         //创建SparkConf
-        val conf = new SparkConf().setAppName("KafkaDirectWordCount").setMaster("local[2]")
+        val conf = new SparkConf().setAppName("kafka_spark_streaming").setMaster("local[4]")
         //创建SparkStreaming，并设置间隔时间 5秒批次
         val ssc = new StreamingContext(conf, Duration(5000))
         //指定消费的 topic 名字
@@ -102,6 +106,19 @@ object KafkaDirectWordCount {
         //拿出真正的数据
         val messages: DStream[String] = transform.map(_._2)
 
+        /*val phnum: DStream[Unit] = messages.map(line => {
+            val lines: Array[String] = line.split(":")
+            val phoneNum = lines(1)
+        })
+        phnum.foreachRDD { rdd =>
+            //对RDD进行操作，触发Action
+            rdd.foreachPartition(partition =>
+                partition.foreach(x => {
+                    println(x)
+                })
+            )*/
+
+
         //依次迭代DStream中的RDD
         messages.foreachRDD { rdd =>
             //对RDD进行操作，触发Action
@@ -110,6 +127,32 @@ object KafkaDirectWordCount {
                     println(x)
                 })
             )
+
+            /*// Get the singleton instance of SQLContext
+            /**
+              * spark中将stream转换成dataframe
+              */
+        val sqlContext = SQLContext.getOrCreate(rdd.sparkContext)
+            import sqlContext.implicits._
+
+            // Convert RDD[String] to DataFrame
+            val wordsDataFrame = rdd.toDF("messages")
+
+            //wordsDataFrame.printSchema()
+
+
+
+            // Register as table
+            wordsDataFrame.registerTempTable("abc")
+
+            // Do word count on DataFrame using SQL and print it
+            val wordCountsDataFrame =
+                sqlContext.sql("select * as total from abc")
+            wordCountsDataFrame.show()*/
+
+
+
+
 
             for (o <- offsetRanges) {
                 //  /g001/offsets/wordcount/0
@@ -126,3 +169,4 @@ object KafkaDirectWordCount {
     }
 
 }
+

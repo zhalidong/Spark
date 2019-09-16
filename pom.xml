@@ -17,6 +17,15 @@
         <encoding>UTF-8</encoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>nexus-aliyun</id>
+            <name>Nexus aliyun</name>
+            <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+        </repository>
+    </repositories>
+
+
     <dependencies>
         <!-- 导入scala的依赖 -->
         <dependency>
@@ -24,6 +33,25 @@
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-server</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-client</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-common</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+
+
 
         <!-- 导入spark sql的依赖 -->
         <dependency>
@@ -66,6 +94,14 @@
             <artifactId>spark-streaming-kafka-0-8_2.11</artifactId>
             <version>${spark.version}</version>
         </dependency>
+
+        <!-- 引入org.json所需依赖 -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20160810</version>
+        </dependency>
+
 
         <!-- mysql的连接驱动依赖 -->
         <dependency>
