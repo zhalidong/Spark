@@ -11,7 +11,13 @@ import org.apache.spark.streaming.kafka.{HasOffsetRanges, KafkaUtils, OffsetRang
 import org.apache.spark.streaming.{Duration, StreamingContext}
 
 /**
-  * 直连方式
+  * 直连方式:RDD的一个分区直接连到kafka的分区上 需要自己维护偏移量
+  * 数据被消费一次 会记录偏移量
+  * Spark-Streaming获取kafka数据的两种方式-Receiver与Direct的方式，
+  * 可以从代码中简单理解成Receiver方式是通过zookeeper来连接kafka队列，
+  * Direct方式是直接连接到kafka的节点上获取数据了。
+  *
+  *
   */
 object KafkaDirectWordCount {
 
@@ -42,7 +48,7 @@ object KafkaDirectWordCount {
         val kafkaParams = Map(
             "metadata.broker.list" -> brokerList,
             "group.id" -> group,
-            //从头开始读取数据
+            //从头开始读取数据 偏移量从哪里开始读数据 SmallestTimeString:从头开始读取
             "auto.offset.reset" -> kafka.api.OffsetRequest.SmallestTimeString
         )
 
@@ -54,7 +60,7 @@ object KafkaDirectWordCount {
         // /g001/offsets/wordcount/0/10001"
         // /g001/offsets/wordcount/1/30001"
         // /g001/offsets/wordcount/2/10001"
-        //zkTopicPath  -> /g001/offsets/wordcount/
+        //zkTopicPath  -> /g001/offsets/wordcount/ countChildren:是否记过偏移量
         val children = zkClient.countChildren(zkTopicPath)
 
         var kafkaStream: InputDStream[(String, String)] = null
@@ -63,7 +69,7 @@ object KafkaDirectWordCount {
         var fromOffsets: Map[TopicAndPartition, Long] = Map()
 
         //如果保存过 offset
-        if (children > 0) {
+        if (children > 0) {                 //有偏移量记录在zk中
             for (i <- 0 until children) {
                 // /g001/offsets/wordcount/0/10001
 
@@ -88,29 +94,30 @@ object KafkaDirectWordCount {
             kafkaStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
         }
 
-        //偏移量的范围
+        //保存偏移量的范围
         var offsetRanges = Array[OffsetRange]()
 
         //从kafka读取的消息，DStream的Transform方法可以将当前批次的RDD获取出来
         //该transform方法计算获取到当前批次RDD,然后将RDD的偏移量取出来，然后在将RDD返回到DStream
+        //transform把DStream转换成RDD
         val transform: DStream[(String, String)] = kafkaStream.transform { rdd =>
             //得到该 rdd 对应 kafka 的消息的 offset
-            //该RDD是一个KafkaRDD，可以获得偏移量的范围
+            //该RDD是一个KafkaRDD，可以获得偏移量的范围 asInstanceOf:强转
             offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
             rdd
         }
-        //拿出真正的数据
+        //拿出真正的数据 value
         val messages: DStream[String] = transform.map(_._2)
 
-        //依次迭代DStream中的RDD
+        //依次迭代DStream中的RDD  DStream:每隔一段时间生成一个RDD
         messages.foreachRDD { rdd =>
-            //对RDD进行操作，触发Action
+            //对RDD进行操作，触发Action 对分区中每一条数据进行处理
             rdd.foreachPartition(partition =>
                 partition.foreach(x => {
                     println(x)
                 })
             )
-
+            //一个分区的数据结束后把此偏移量写入zk
             for (o <- offsetRanges) {
                 //  /g001/offsets/wordcount/0
                 val zkPath = s"${topicDirs.consumerOffsetDir}/${o.partition}"

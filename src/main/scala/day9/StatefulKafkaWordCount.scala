@@ -8,6 +8,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
   * 累加历史批次数据  容易丢（当重启程序后）
+  * updateStateByKey此函数会保存以前批次的数据进行聚合
   */
 object StatefulKafkaWordCount {
 
@@ -19,7 +20,7 @@ object StatefulKafkaWordCount {
       */
     val updateFunc=(iter: Iterator[(String,Seq[Int],Option[Int])])=>{
         //iter.map(t=>(t._1,t._2.sum+t._3.getOrElse(0)))
-        //scala模式匹配
+        //scala模式匹配 y.sum 当前批次数据 z.getOrElse(0)历史数据
         iter.map{ case (x,y,z)=>(x,y.sum+z.getOrElse(0))}
 
     }
@@ -48,7 +49,7 @@ object StatefulKafkaWordCount {
         val words: DStream[String] = lines.flatMap(_.split(" "))
         //单词和1组合到一起
         val wordAndOne: DStream[(String, Int)] = words.map((_,1))
-        //聚合 updateStateByKey此函数会保存以前批次的数据进行聚合
+        //聚合 updateStateByKey此函数会保存以前批次的数据进行聚合 HashPartitioner分区器
         val reduced: DStream[(String, Int)] = wordAndOne.updateStateByKey(updateFunc,new HashPartitioner(ssc.sparkContext.defaultParallelism),true)
         //打印结果(Action)
         reduced.print()
